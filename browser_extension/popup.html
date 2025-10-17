@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>PhishGuard Scan</title>
+  <link rel="stylesheet" href="popup.css"/>
+</head>
+<body>
+  <div class="popup-container">
+    <div class="brand-header">
+      <img src="icon48.png" width="32" height="32" />
+      <span>PhishGuard AI</span>
+    </div>
+    <div class="subtitle">Real-time Phishing Detection</div>
+    
+    <div id="status" class="status-section">
+      <p class="scan-info">Scanning current page automatically...</p>
+    </div>
+    
+    <button id="scanBtn" class="scan-button">
+      <span class="btn-icon">🔍</span> Rescan This Page
+    </button>
+    
+    <div id="resultSection" class="result-section" style="display:none;">
+      <div class="verdict-container">
+        <h3 id="verdict" class="verdict-text"></h3>
+        <div id="confidence" class="confidence-badge"></div>
+      </div>
+      
+      <div id="explanation" class="expl-box"></div>
+      <div id="riskFactors" class="risk-factors"></div>
+      <div id="advice" class="advice-box">
+        <strong>⚠️ Safety Tip:</strong> Never enter credentials on suspicious sites. Always verify URLs before logging in.
+      </div>
+    </div>
+    
+    <div id="loading" class="loading-section" style="display:none;">
+      <div class="spinner"></div>
+      <p>Analyzing URL...</p>
+    </div>
+    
+    <div id="error" class="error-section" style="display:none;"></div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

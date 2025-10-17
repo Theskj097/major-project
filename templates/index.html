@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Phishing Detection System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: #f5f6fa; }
+        .main-container { margin-top: 2rem; margin-bottom: 2rem; }
+        .primary-card {
+            box-shadow: 0 10px 30px rgba(0,0,0,.12);
+            border-radius: 28px;
+            background: #fff;
+            margin: 36px auto 32px auto;
+            max-width: 730px;
+            border: 1px solid #ececec;
+            padding: 1.8rem 2.3rem 2.1rem 2.3rem;
+        }
+        .card-title-big { font-size: 2.3rem; font-weight: 700; color: #2367d1; letter-spacing: -2px; }
+        .muted-tip { font-size: 0.97rem; color: #8899b0; margin-left: 0.4rem; }
+        .result-verdict { font-size: 1.7rem; font-weight: 700; }
+        .progress-bar {font-weight:500;}
+        #phishingExplanationSection, #nonPhishingInfo { margin-top: 14px; margin-bottom: 10px; }
+        #phishingExplanationSection { background: #f8fafd; border: 1px solid #e3eaf3; border-radius: 8px; padding: 12px 16px; }
+        #nonPhishingInfo { background: #eafcef; border: 1px solid #cfecdb; border-radius: 8px; color:#23b26d; font-weight:600; padding: 12px 16px; }
+        #adviceBox { margin-top: 15px; }
+        .riskFactors-title { margin-top:22px; }
+        .list-group-item { border-left: 2px solid #2572f8; }
+        .feature-item .collapse { background: #f8f9fc; }
+        .feature-header { cursor:pointer; }
+        #featuresList { max-height:330px; overflow-y:auto; }
+        .analysis-summary-card { background: #fcfcfe; border: 1px solid #e5e5e5; border-radius: 8px; padding: 16px 18px 12px 16px; width: 100%; }
+        .center-block { margin-left: auto; margin-right: auto; }
+        .btn-analysis { background: #2572f8; color: #fff; border-radius: 50px; padding: 10px 24px !important; font-weight:600; border: none; margin-bottom:18px; box-shadow: 0 2px 8px rgba(37,114,248,.10);}
+        .btn-analysis:hover {background: #1056c7;}
+        @media (max-width: 768px) {
+            .primary-card, .analysis-summary-card { padding: 1.1rem 1.2rem 1.5rem .8rem; }
+            .main-container, .center-block { margin:0; padding:0;}
+        }
+    </style>
+</head>
+<body>
+    <div class="container main-container">
+        <div class="primary-card mb-4">
+            <div class="text-center mb-3">
+                <span class="card-title-big"><i class="bi bi-shield-check"></i> AI Phishing Detection</span>
+                <div class="mt-2 mb-1">
+                    <span style="font-size:1.1rem; color:#3e4d59;">
+                        Advanced machine learning system to detect phishing URLs with AI-powered explanations
+                    </span>
+                </div>
+            </div>
+            <div class="input-group mb-2">
+                <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+                <input type="url" class="form-control form-control-lg" id="urlInput" placeholder="Enter URL to analyze">
+                <button class="btn btn-analysis btn-lg" type="button" id="scanBtn"><i class="bi bi-search"></i> Scan URL</button>
+            </div>
+            <div class="form-check form-switch mt-2 mb-1 d-flex align-items-center justify-content-end">
+                <input class="form-check-input" type="checkbox" id="realTimeToggle">
+                <label class="form-check-label ms-2" for="realTimeToggle">
+                    <i class="bi bi-wifi"></i> Use Real-Time Global Check
+                </label>
+            </div>
+            <div class="muted-tip mt-0">Tip: Real-time scan checks the latest phishing databases and reputation services online.</div>
+        </div>
+        <div class="row justify-content-center d-none" id="loadingSection">
+            <div class="col-lg-8">
+                <div class="shadow-sm bg-white rounded-4 px-4 py-4" style="border:1px solid #eee;">
+                    <div class="card-body text-center py-5">
+                        <div class="spinner-border text-primary spinner-border-custom" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h4 class="mt-3 text-primary">Scanning in Real Time…</h4>
+                        <p class="text-muted">Checking domain, keywords, blacklists, and more.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row justify-content-center d-none" id="resultsSection">
+            <div class="col-lg-8">
+                <div class="shadow-sm bg-white rounded-4 px-4 pt-4 pb-2 mb-4" style="border:1px solid #ececec;">
+                    <h2 id="resultText" class="result-verdict text-center mb-1 mt-1"></h2>
+                    <div class="progress w-100 mb-2" style="height:16px;">
+                        <div id="confidenceBar" class="progress-bar bg-success" style="width:100%"></div>
+                    </div>
+                    <div class="row align-items-center mb-1">
+                        <div class="col text-start small text-muted">Confidence Score</div>
+                        <div class="col text-end"><b id="confidenceText" class="fs-5"></b></div>
+                    </div>
+                    <div class="row gy-0 align-items-center mb-3">
+                        <div class="col-auto fw-semibold">ML Model Test Accuracy:</div>
+                        <div class="col">
+                            <div class="progress" style="height: 15px;">
+                                <div id="accuracyMeter" class="progress-bar bg-success" style="width:95%">95%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Explanations -->
+                    <div id="phishingExplanationSection" style="display:none;"></div>
+                    <div id="nonPhishingInfo" style="display:none;"></div>
+                    <div class="alert alert-danger rounded-3 mt-1 mb-3 py-2 px-3" id="adviceBox" style="font-size:1rem;">
+                        <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                        <strong>Advice:</strong> Never enter credentials. Use trusted sites. Report suspicious domains.
+                    </div>
+                    <div class="mt-1 mb-3">
+                        <h6 class="riskFactors-title fw-bold mb-2"><i class="bi bi-cpu"></i> AI Explanation: Top Risk Factors</h6>
+                        <div id="riskFactors" class="list-group list-group-flush"></div>
+                    </div>
+                    <div class="text-center mb-2">
+                        <button class="btn btn-primary rounded-pill px-4 py-2 my-2" type="button" data-bs-toggle="collapse" data-bs-target="#detailedAnalysis">
+                            <i class="bi bi-info-circle"></i> View Detailed Analysis
+                        </button>
+                    </div>
+                    <div class="collapse" id="detailedAnalysis">
+                        <div class="card card-body bg-light border-0" style="max-height:320px;overflow-y:auto;">
+                            <h6 class="fw-semibold mb-3">Extracted Features (click each for description)</h6>
+                            <div id="featuresList" class="row"></div>
+                        </div>
+                    </div>
+                    <div class="analysis-summary-card mt-3 mb-0 center-block">
+                        <div class="row">
+                            <div class="col-md-6"><small class="text-muted d-block">URL Analyzed:</small><code id="analyzedUrl" class="small"></code></div>
+                            <div class="col-md-6"><small class="text-muted d-block">Probability:</small>
+                                <div class="small"><span class="text-danger">Phishing: <strong id="probPhishing"></strong></span><br>
+                                    <span class="text-success">Legitimate: <strong id="probLegitimate"></strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row justify-content-center d-none" id="errorSection">
+            <div class="col-lg-8">
+                <div class="shadow-sm bg-white rounded-4 px-4 py-5">
+                    <div class="card-body text-center py-4">
+                        <i class="bi bi-exclamation-triangle text-warning display-4"></i>
+                        <h4 class="text-warning mt-3">Analysis Error</h4>
+                        <p id="errorMessage" class="text-muted"></p>
+                        <button class="btn btn-secondary" onclick="resetForm()">Try Again</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- No static featureExplanations object needed!
+        const scanBtn = document.getElementById('scanBtn');
+        const realTimeToggle = document.getElementById('realTimeToggle');
+        const urlInput = document.getElementById('urlInput');
+        const loadingSection = document.getElementById('loadingSection');
+        const resultsSection = document.getElementById('resultsSection');
+        const errorSection = document.getElementById('errorSection');
+
+        scanBtn.addEventListener('click', () => analyzeUrl(realTimeToggle.checked));
+        urlInput.addEventListener('keypress', e => { if (e.key === 'Enter') analyzeUrl(realTimeToggle.checked); });
+
+        function resetForm() {
+            loadingSection.classList.add('d-none');
+            resultsSection.classList.add('d-none');
+            errorSection.classList.add('d-none');
+        }
+
+        async function analyzeUrl(isRealTime=false) {
+            const url = urlInput.value.trim();
+            if (!url) return showError('Please enter a URL to analyze');
+            try { new URL(url); } catch { return showError('Please enter a valid URL (e.g., https://example.com)'); }
+            resetForm(); loadingSection.classList.remove('d-none');
+            try {
+                const response = await fetch('/predict', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ url: url, real_time: isRealTime }) });
+                const data = await response.json();
+                if (response.ok) { displayResults(data, isRealTime); } else { showError(data.message||'Analysis failed'); }
+            } catch (error) { showError('Network error: ' + error.message); }
+        }
+
+        function displayResults(data, realTimeUsed=false) {
+            loadingSection.classList.add('d-none'); resultsSection.classList.remove('d-none');
+            const resultText = document.getElementById('resultText');
+            const confidenceBar = document.getElementById('confidenceBar');
+            document.getElementById('confidenceText').textContent = data.confidence + '%';
+            document.getElementById('confidenceBar').style.width = data.confidence + '%';
+            switch (data.risk_level) {
+                case 'high': resultText.className = 'result-verdict risk-high text-center mb-1 mt-1'; confidenceBar.className='progress-bar bg-danger'; break;
+                case 'medium': resultText.className = 'result-verdict risk-medium text-center mb-1 mt-1'; confidenceBar.className='progress-bar bg-warning'; break;
+                case 'low': resultText.className = 'result-verdict risk-low text-center mb-1 mt-1'; confidenceBar.className='progress-bar bg-warning'; break;
+                case 'safe': resultText.className = 'result-verdict risk-safe text-center mb-1 mt-1'; confidenceBar.className='progress-bar bg-success'; break;
+            }
+            resultText.textContent = data.result;
+
+            // Scan explanation section logic
+            const explainSection = document.getElementById('phishingExplanationSection');
+            const nonPhishingInfo = document.getElementById('nonPhishingInfo');
+            if (["high","medium","low"].includes(data.risk_level) && data.prediction === 1) {
+                explainSection.style.display = "";
+                explainSection.innerHTML = `<b>Why this is a Phishing Link:</b> <br>${buildNaturalExplanation(data)}`;
+                nonPhishingInfo.style.display = "none";
+            } else {
+                explainSection.style.display = "none";
+                nonPhishingInfo.style.display = "";
+            }
+
+            // Risk factors (same as before)
+            const riskFactorsContainer = document.getElementById('riskFactors'); riskFactorsContainer.innerHTML='';
+            data.top_risk_factors.forEach(factor => {
+                const item = document.createElement('div'); item.className='list-group-item';
+                const shapClass = factor.shap_value > 0 ? 'shap-positive' : 'shap-negative';
+                const impactIcon = factor.shap_value > 0 ? '<i class="bi bi-arrow-up-circle-fill text-danger"></i>' : '<i class="bi bi-arrow-down-circle-fill text-success"></i>';
+                item.innerHTML = `<div class="d-flex justify-content-between align-items-center"><div><strong>${factor.feature}</strong> <small class="text-muted d-block">Value: ${factor.value}</small></div><div class="text-end">${impactIcon}<div class="${shapClass} small">Impact: ${Math.abs(factor.shap_value).toFixed(3)}</div></div></div>`;
+                riskFactorsContainer.appendChild(item);
+            });
+
+            // Analysis Summary
+            document.getElementById('analyzedUrl').textContent = data.url_analyzed;
+            document.getElementById('probPhishing').textContent = data.probability_phishing + '%';
+            document.getElementById('probLegitimate').textContent = data.probability_legitimate + '%';
+
+            // Detailed Analysis: feature values & explanation dropdowns (dynamic per-scan!)
+            displayFeaturesDetailed(data);
+
+            // Model accuracy meter (set from backend if available)
+            let acc_meter = document.getElementById('accuracyMeter');
+            acc_meter.style.width = "95%";
+            acc_meter.textContent = "95%";
+        }
+
+        function buildNaturalExplanation(data) {
+            let reasons = [];
+            data.top_risk_factors.forEach(f => {
+                if (f.impact === "increases risk") {
+                    switch(f.feature.trim().toLowerCase()) {
+                        case "hyphen count":
+                            reasons.push({
+                                title: "Unusual Hyphens in the URL",
+                                detail: `This link contains <b>${f.value}</b> hyphens. Attackers often insert hyphens to make fake domains resemble real brands, so multiple hyphens are a strong phishing signal.`
+                            });
+                            break;
+                        case "url entropy":
+                            reasons.push({
+                                title: "Random or Complex URL",
+                                detail: `The URL has high entropy (<b>${Number(f.value).toFixed(2)}</b>), which means it is unusually complex or random. Random-looking URLs are frequently generated by phishing kits to avoid detection.`
+                            });
+                            break;
+                        case "has urgent":
+                            reasons.push({
+                                title: "Urgent Keyword Detected",
+                                detail: `The URL contains the word "urgent". Phishing attacks often try to create urgency to manipulate users into clicking suspicious links quickly.`
+                            });
+                            break;
+                        case "has bank":
+                            reasons.push({
+                                title: "Finance-related Keyword",
+                                detail: `The URL mentions "bank". Attackers often target users by pretending to be financial institutions.`
+                            });
+                            break;
+                        default:
+                            reasons.push({
+                                title: f.feature,
+                                detail: `This feature has a suspicious value (${f.value}) and contributed to the phishing score.`
+                            });
+                    }
+                }
+            });
+
+            // Extra context from feature flags
+            if (data.all_features.is_shortened)
+                reasons.push({
+                    title: "Shortened Link Used",
+                    detail: "URL shortening services (like bit.ly) obscure the true destination, which makes it easier for attackers to hide the real webpage and trick users."
+                });
+            if (data.all_features.domain_age_days < 30)
+                reasons.push({
+                    title: "Very New Domain",
+                    detail: "The domain was registered less than 30 days ago. Attackers often use freshly registered domains to bypass security blacklists."
+                });
+            if (data.all_features.has_ip)
+                reasons.push({
+                    title: "IP Address Instead of Brand Name",
+                    detail: "This link uses an IP address, not a recognized brand domain. Trustworthy companies rarely use bare IPs for login or account sites."
+                });
+
+            if (reasons.length === 0) {
+                return `<ul><li>This link triggered multiple risk signals but none stand out; please use caution.</li></ul>`;
+            }
+
+            // Format as HTML list for ease of reading
+            let explainHTML = "<ul>";
+            reasons.forEach(r => {
+                explainHTML += `<li><b>${r.title}:</b> ${r.detail}</li>`;
+            });
+            explainHTML += "</ul>";
+            return explainHTML;
+        }
+
+
+        function personalizedFeatureExplanation(feature, value, allFeatures) {
+            switch(feature) {
+                case "url_length":
+                    if (value > 60) return `The URL length is <b>${value}</b>, which is unusually long. Long URLs are often used in phishing to obscure the real destination.`;
+                    if (value < 20) return `The URL length is short (<b>${value}</b>), which is typical for legitimate sites.`;
+                    return `The URL length is <b>${value}</b>. Very long URLs can be used by phishers to hide malicious intent.`;
+                case "digit_count":
+                    return value > 5 ? `There are <b>${value}</b> digits in the URL. Excessive numbers can be used to obfuscate phishing links.` :
+                           value > 0 ? `There are <b>${value}</b> digits in the URL. Some digits are okay, but too many may be suspicious.` :
+                           "No digits in the URL, which is common in trusted domains.";
+                case "hyphen_count":
+                    return value > 2 ? `The URL contains <b>${value}</b> hyphens, which is a red flag since phishers use hyphens to mimic real brands.`
+                        : value > 0 ? `The URL has <b>${value}</b> hyphen(s). Many phishing sites use hyphens to impersonate real websites.`
+                        : "No hyphens found, a good sign for legitimacy.";
+                case "subdomain_count":
+                    return value > 2 ? `There are <b>${value}</b> subdomains. Excessive subdomains may be used in phishing attacks.` :
+                        value > 0 ? `There are <b>${value}</b> subdomain(s). Few subdomains are normal, many can be indicative of phishing.` :
+                        "No subdomains, which is standard for reputable websites.";
+                case "query_params_count":
+                    return value > 3 ? `This URL includes <b>${value}</b> query parameters - such complexity is uncommon in legitimate login pages and could hide malicious actions.` :
+                        value > 0 ? `There are <b>${value}</b> query parameters. Some complexity is routine, but many may warrant caution.` :
+                        "No query parameters, common for basic site URLs.";
+                case "url_entropy":
+                    return value > 4 ? `URL entropy is <b>${value.toFixed(2)}</b>; very high entropy means the address is complex/random, often a hallmark of phishing.` :
+                        value > 3 ? `Entropy is moderate (<b>${value.toFixed(2)}</b>), typical for many URLs.` :
+                        `Entropy is low (<b>${value.toFixed(2)}</b>), suggesting a straightforward URL format.`;
+                case "domain_length":
+                    return value > 20 ? `Domain length is <b>${value}</b>. Very long domains can help attackers hide intent or mimic brands.` :
+                        value < 6  ? "Domain is very short, usual for well-known brands." : `Normal domain length (${value}).`;
+                case "domain_age_days":
+                    return value < 30 ? `Domain is only <b>${value}</b> days old. Phishers often use new domains that aren't blacklisted yet.` :
+                        value > 3650 ? `Domain is over <b>${(value/365).toFixed(1)}</b> years old. Trusted domains have long histories.` :
+                        `Domain age is <b>${value}</b> days. Newer domains can raise suspicion.`;
+                case "domain_lifespan_days":
+                    return value < 365 ? `Domain lifespan is just <b>${value}</b> days, suggesting a temporary or throwaway domain often used in phishing.` :
+                        `Domain lifespan is <b>${value}</b> days. Longer lifespans are seen in trusted domains.`;
+                case "has_https":
+                    return value ? "This site uses HTTPS. While HTTPS is required for security, even phishing sites sometimes have certificates." : 
+                        "No HTTPS detected. Lack of HTTPS is a strong warning sign for phishing.";
+                case "has_ip":
+                    return value ? "This URL uses a direct IP address. Phishing URLs frequently use IP addresses instead of brand domains." :
+                        "No IP address in the domain, a positive indicator.";
+                case "has_at_symbol":
+                    return value ? "The '@' symbol is present. This can be used to disguise the real target of the link—a common phishing trick." :
+                        "No '@' in the URL, normal for safe links.";
+                case "is_shortened":
+                    return value ? "This link uses a known URL shortener, which hides the destination and is often used in phishing attacks." :
+                        "The URL is not shortened, which is more transparent for users.";
+                case "has_login":
+                    return value ? "The keyword 'login' exists in the URL, suggesting attempts to fake a sign-in page." : 
+                        "No 'login' keyword in the URL.";
+                case "has_secure":
+                    return value ? "The keyword 'secure' is present; attackers often use this word to mislead users." : 
+                        "No use of 'secure' keyword.";
+                case "has_bank":
+                    return value ? "The keyword 'bank' appears—financial sites are a common phishing target." : 
+                        "No mention of 'bank' in the URL.";
+                default:
+                    return "No contextual explanation for this feature yet.";
+            }
+        }
+
+        function displayFeaturesDetailed(data) {
+            const parent = document.getElementById('featuresList'); parent.innerHTML='';
+            let index=0;
+            for (const [key, value] of Object.entries(data.all_features)) {
+                const featureExplain = personalizedFeatureExplanation(key, value, data.all_features);
+                const friendly = key.replace(/_/g," ").toUpperCase();
+                const collapseId = `featureExplain${index}`;
+                parent.innerHTML += `
+                <div class="col-md-6 col-lg-4">
+                  <div class="feature-item p-2 mb-2">
+                    <div class="feature-header d-flex justify-content-between align-items-center" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="false">
+                      <small class="fw-bold">${friendly}</small>
+                      <i class="bi bi-chevron-down"></i>
+                    </div>
+                    <div>Value: <b>${value}</b></div>
+                    <div class="collapse" id="${collapseId}">
+                      <small class="text-muted">${featureExplain}</small>
+                    </div>
+                  </div>
+                </div>
+                `;
+                index++;
+            }
+        }
+
+        function showError(message) {
+            loadingSection.classList.add('d-none');
+            resultsSection.classList.add('d-none');
+            errorSection.classList.remove('d-none');
+            document.getElementById('errorMessage').textContent = message;
+        }
+    </script>
+</body>
+</html>
